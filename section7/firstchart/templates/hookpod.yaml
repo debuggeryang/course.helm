@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "firstchart.fullname" . }}-pre-install-demo"
+  annotations:
+    # specify when the hook will be triggered
+    # pre-install post-install pre-delete post-delete pre-upgrade post-upgrade pre-rollback post-rollback test
+    "helm.sh/hook": pre-install 
+    
+    # specify the priority
+    "helm.sh/hook-weight": "1" 
+
+    # specify when the hook deployment will be deleted
+    # default: before-hook-creation, others: hook-succeeded hook-failed
+    "helm.sh/hook-delete-policy": hook-succeeded 
+spec:
+  containers:
+    - name: pre-install-demo-pod
+      image: busybox
+      imagePullPolicy: IfNotPresent
+      command: ['sh', '-c', 'echo Pod is Running']
+  restartPolicy: OnFailure
