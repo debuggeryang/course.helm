@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+myTemplate: {{ include "firstchart.customtemplate" . | quote }}
+myTemplate2: {{ template "firstchart.customtemplate" . }}
+kind: Deployment
+  {{"Helm Templating is" }} , {{- "Cool"}}
+  {{.Values.my.custom.data}}
+  {{.Chart.Name}}, {{ "the lower case .name is not available"}}
+  {{.Release.Name}} {{.Release.Namespace}} {{.Release.IsInstall}} {{.Release.IsUpgrade}} {{.Release.Service}}
+  {{.Template.Name}} {{.Template.BasePath}}
+  {{.Values.my.custom.data | default "testdefault" | upper | quote}}
+
+  {{ $myFLAG := .Values.my.flag }}
+  {{ $myFLAG := "test" }}
+  {{- if $myFLAG }}
+    {{- "Output of if" | nindent 2}}
+  {{- else }}
+    {{- "Output of else" | nindent 2}}
+  {{- end }}
+
+  {{- with .Values.my.values}}
+    {{- toYaml . | nindent 2}}
+  {{- else }}
+    {{- $.Values.my.value | nindent 2}}
+  {{- end}}
+
+  {{- range .Values.my.values}}
+    {{- printf "iteration %s" . | nindent 2}}
+  {{- end}}
+
+  {{- range $key,$value := .Values.image}}
+    - {{$key}} {{$value | quote}}
+  {{- end}}
+
+metadata:
+  name: {{ include "firstchart.fullname" . }}
+  labels:
+    {{- include "firstchart.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "firstchart.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "firstchart.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "firstchart.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          {{- with .Values.volumeMounts }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with .Values.volumes }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
